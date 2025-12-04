@@ -1,0 +1,14 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.venv/
+env/
+venv/
+*.log
+
+# Home Assistant
+.storage/
+home-assistant.log
+home-assistant.db
