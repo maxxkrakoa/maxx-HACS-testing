@@ -27,7 +27,7 @@ class MaxxHacsTestingDataUpdateCoordinator(DataUpdateCoordinator):
             hass=hass,
             logger=_LOGGER,
             name=DOMAIN,
-            update_interval=timedelta(minutes=1),
+            update_interval=timedelta(minutes=30),
         )
 
     async def _async_update_data(self):
