@@ -2,11 +2,11 @@
     "domain": "maxx_hacs_testing",
     "name": "Maxx HACS Testing",
     "codeowners": [],
-    "config_flow": false,
+    "config_flow": true,
     "dependencies": [],
-    "documentation": "https://github.com/username/maxx-HACS-testing",
+    "documentation": "https://github.com/maxxkrakoa/maxx-HACS-testing",
     "iot_class": "local_polling",
-    "issue_tracker": "https://github.com/username/maxx-HACS-testing/issues",
+    "issue_tracker": "https://github.com/maxxkrakoa/maxx-HACS-testing/issues",
     "requirements": [],
     "version": "0.0.1"
 }
