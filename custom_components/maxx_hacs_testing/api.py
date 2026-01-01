@@ -8,9 +8,21 @@ _LOGGER = logging.getLogger(__name__)
 class MaxxHacsTestingApiClient:
     """Sample API Client."""
 
-    def __init__(self) -> None:
+    def __init__(self, username: str, password: str) -> None:
         """Sample API Client."""
-        pass
+        self._username = username
+        self._password = password
+
+    async def async_authenticate(self) -> bool:
+        """Authenticate with the API."""
+        # Simulate network delay
+        await asyncio.sleep(1)
+        
+        # Simple check: pass must not be empty
+        if not self._username or not self._password:
+            return False
+            
+        return True
 
     async def async_get_data(self) -> dict:
         """Get data from the API."""

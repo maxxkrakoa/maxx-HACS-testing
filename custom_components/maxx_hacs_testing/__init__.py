@@ -6,7 +6,7 @@ from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 
 from .api import MaxxHacsTestingApiClient
-from .const import DOMAIN
+from .const import DOMAIN, CONF_USERNAME, CONF_PASSWORD
 from .coordinator import MaxxHacsTestingDataUpdateCoordinator
 
 PLATFORMS: list[Platform] = [Platform.SENSOR]
@@ -15,7 +15,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Maxx HACS Testing from a config entry."""
     hass.data.setdefault(DOMAIN, {})
 
-    client = MaxxHacsTestingApiClient()
+    client = MaxxHacsTestingApiClient(
+        username=entry.data[CONF_USERNAME],
+        password=entry.data[CONF_PASSWORD],
+    )
     coordinator = MaxxHacsTestingDataUpdateCoordinator(hass, client)
     
     await coordinator.async_config_entry_first_refresh()
