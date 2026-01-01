@@ -69,7 +69,7 @@ class BrunataOnlineApiClient:
         self._heating = {}
         self._other = {}
         self._tokens = {}
-        self._session.headers.update(HEADERS)
+        self._headers = HEADERS.copy()
 
     def _is_token_valid(self, token: str) -> bool:
         if not self._tokens:
@@ -217,7 +217,7 @@ class BrunataOnlineApiClient:
         # Ensure validity of tokens
         if tokens.get("access_token"):
             # Add access token to session headers
-            self._session.headers.update(
+            self._headers.update(
                 {
                     "Authorization": f"{tokens.get('token_type')} {tokens.get('access_token')}",
                 }
@@ -359,7 +359,12 @@ class BrunataOnlineApiClient:
         """Get information from the API."""
         async with async_timeout(TIMEOUT):
             try:
-                async with self._session.request(**args) as response:
+                headers = self._headers.copy()
+                if "headers" in args:
+                    headers.update(args["headers"])
+                    del args["headers"]
+                
+                async with self._session.request(headers=headers, **args) as response:
                     await response.read()
                     response.raise_for_status()
                     return response
