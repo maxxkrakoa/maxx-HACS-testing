@@ -10,7 +10,7 @@ mock_brunata_client_instance = MagicMock()
 mock_brunata_client_instance._get_tokens = AsyncMock(return_value=True)
 mock_brunata_client_instance.fetch_meters = AsyncMock()
 mock_brunata_client_instance.fetch_consumption = AsyncMock()
-mock_brunata_client_instance.get_consumption = AsyncMock() # Will set return value in test
+mock_brunata_client_instance.get_consumption = MagicMock() # Will set return value in test
 
 mock_session_instance = MagicMock()
 

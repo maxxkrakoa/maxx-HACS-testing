@@ -55,7 +55,7 @@ class MaxxHacsTestingApiClient:
         await self._brunata_client.fetch_consumption(brunata_api.Consumption.OTHER, brunata_api.Interval.DAY)
 
         # now that the data has been loaded, we extract the data we need
-        json_data = await self._brunata_client.get_consumption()
+        json_data = self._brunata_client.get_consumption()
 
         # Current mapping: Water -> water_usage, Other -> electricity_usage 
         # (works for my setup, will have to be changed to be more generic)        
