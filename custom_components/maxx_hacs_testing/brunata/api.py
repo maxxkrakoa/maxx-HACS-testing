@@ -117,119 +117,118 @@ class BrunataOnlineApiClient:
             base64.urlsafe_b64encode(code_challenge).decode("utf-8").replace("=", "")
         )
         
-        # Initial authorization call
-        async with self._session.request(
-            method="GET",
-            url=f"{API_URL.replace('webservice', 'auth-webservice')}/authorize",
-            params={
-                "client_id": CLIENT_ID,
-                "redirect_uri": REDIRECT,
-                "scope": f"{CLIENT_ID} offline_access",
-                "response_type": "code",
-                "code_challenge": code_challenge,
-                "code_challenge_method": "S256",
-            },
-        ) as req_code:
-            text_code = await req_code.text()
-            # Get CSRF Token & Transaction ID
-            # aiohttp cookie jar usually handles cookies automatically if attached to session
-            # We try to extract from cookie jar or response cookies
-            try:
-                # Assuming cookies are handled by cookie jar of session, but we need the value for X-Csrf-Token header
-                # Try getting from response headers Set-Cookie or session cookie jar
-                # self._session.cookie_jar.filter_cookies(req_code.url)
-                # But simple access via req_code.cookies might work if it returns a MultiDictProxy
-                csrf_token = str(req_code.cookies.get("x-ms-cpim-csrf").value)
-            except (KeyError, AttributeError):
-                # Fallback check session cookie jar
-                cookies = self._session.cookie_jar.filter_cookies(req_code.url)
-                if "x-ms-cpim-csrf" in cookies:
-                    csrf_token = cookies["x-ms-cpim-csrf"].value
-                else:
-                    _LOGGER.error("Error while retrieving CSRF Token")
-                    return {}
-
-            match = re.search(r"var SETTINGS = (\{[^;]*\});", text_code)
-            if match:  # Use a little magic to avoid proper JSON parsing ✨
-                transaction_id = [
-                    i for i in match.group(1).split('","') if i.startswith("transId")
-                ][0][10:]
-                _LOGGER.debug("Transaction ID: %s", transaction_id)
-            else:
-                _LOGGER.error("Failed to get Transaction ID")
-                return {}
-            
-            # Post credentials to B2C Endpoint
-            # Note: We don't need 'with Session' as we use self._session
-            
-            async with self._session.request(
-                method="POST",
-                url=f"{AUTHN_URL}/SelfAsserted",
-                params={
-                    "tx": transaction_id,
-                    "p": OAUTH2_PROFILE,
-                },
-                data={
-                    "request_type": "RESPONSE",
-                    "logonIdentifier": self._username,
-                    "password": self._password,
-                },
-                headers={
-                    "Referer": str(req_code.url),
-                    "X-Csrf-Token": csrf_token,
-                    "X-Requested-With": "XMLHttpRequest",
-                },
-                allow_redirects=False,
-            ) as req_auth_post:
-                await req_auth_post.read() # Consume
-            
-            # Get authentication code
-            async with self._session.request(
+        # Use isolated session for auth flow to ensure clean state
+        async with ClientSession() as session:
+            # Initial authorization call
+            async with session.request(
                 method="GET",
-                url=f"{AUTHN_URL}/api/CombinedSigninAndSignup/confirmed",
+                url=f"{API_URL.replace('webservice', 'auth-webservice')}/authorize",
                 params={
-                    "rememberMe": str(False),
-                    "csrf_token": csrf_token,
-                    "tx": transaction_id,
-                    "p": OAUTH2_PROFILE,
-                },
-                allow_redirects=False,
-            ) as req_auth:
-                await req_auth.read()
-                if "Location" not in req_auth.headers:
-                     _LOGGER.error("No Location header in auth confirmation response")
-                     return {}
-                     
-                redirect = req_auth.headers["Location"]
-                if not redirect.startswith(REDIRECT):
-                     # Sometimes wait/retry? But asserting directly
-                     _LOGGER.error("Redirect URL mismatch: %s", redirect)
-                
-                _LOGGER.debug("%d - %s", req_auth.status, redirect)
-                try:
-                    auth_code = urllib.parse.parse_qs(
-                        urllib.parse.urlparse(redirect).query
-                    )["code"][0]
-                except KeyError:
-                    _LOGGER.error(
-                        "An error has occurred while attempting to authenticate. \
-                            Please ensure your credentials are correct"
-                    )
-                    return {}
-            
-            # Get OAuth 2.0 token object
-            async with self._session.request(
-                method="POST",
-                url=f"{OAUTH2_URL}/token",
-                data={
-                    "grant_type": "authorization_code",
                     "client_id": CLIENT_ID,
                     "redirect_uri": REDIRECT,
-                    "code": auth_code,
-                    "code_verifier": code_verifier,
+                    "scope": f"{CLIENT_ID} offline_access",
+                    "response_type": "code",
+                    "code_challenge": code_challenge,
+                    "code_challenge_method": "S256",
                 },
-            ) as tokens_resp:
-                 return await tokens_resp.json()
+            ) as req_code:
+                text_code = await req_code.text()
+                # Get CSRF Token & Transaction ID
+                try:
+                     # Access cookie from isolated session's cookie jar
+                     # Direct access via req_code.cookies often works for response cookies
+                     if "x-ms-cpim-csrf" in req_code.cookies:
+                         csrf_token = str(req_code.cookies.get("x-ms-cpim-csrf").value)
+                     else:
+                        # Check session cookie jar
+                        cookies = session.cookie_jar.filter_cookies(req_code.url)
+                        if "x-ms-cpim-csrf" in cookies:
+                            csrf_token = cookies["x-ms-cpim-csrf"].value
+                        else:
+                            _LOGGER.error("Error while retrieving CSRF Token")
+                            return {}
+                except Exception as e:
+                     _LOGGER.error("Exception getting CSRF token: %s", e)
+                     return {}
+
+                match = re.search(r"var SETTINGS = (\{[^;]*\});", text_code)
+                if match:  # Use a little magic to avoid proper JSON parsing ✨
+                    transaction_id = [
+                        i for i in match.group(1).split('","') if i.startswith("transId")
+                    ][0][10:]
+                    _LOGGER.debug("Transaction ID: %s", transaction_id)
+                else:
+                    _LOGGER.error("Failed to get Transaction ID")
+                    return {}
+                
+                # Post credentials to B2C Endpoint
+                async with session.request(
+                    method="POST",
+                    url=f"{AUTHN_URL}/SelfAsserted",
+                    params={
+                        "tx": transaction_id,
+                        "p": OAUTH2_PROFILE,
+                    },
+                    data={
+                        "request_type": "RESPONSE",
+                        "logonIdentifier": self._username,
+                        "password": self._password,
+                    },
+                    headers={
+                        "Referer": str(req_code.url),
+                        "X-Csrf-Token": csrf_token,
+                        "X-Requested-With": "XMLHttpRequest",
+                    },
+                    allow_redirects=False,
+                ) as req_auth_post:
+                    await req_auth_post.read() # Consume
+                
+                # Get authentication code
+                async with session.request(
+                    method="GET",
+                    url=f"{AUTHN_URL}/api/CombinedSigninAndSignup/confirmed",
+                    params={
+                        "rememberMe": str(False),
+                        "csrf_token": csrf_token,
+                        "tx": transaction_id,
+                        "p": OAUTH2_PROFILE,
+                    },
+                    allow_redirects=False,
+                ) as req_auth:
+                    await req_auth.read()
+                    if "Location" not in req_auth.headers:
+                        _LOGGER.error("No Location header in auth confirmation response. Context: %s", await req_auth.text())
+                        return {}
+                        
+                    redirect = req_auth.headers["Location"]
+                    if not redirect.startswith(REDIRECT):
+                         _LOGGER.error("Redirect URL mismatch: %s", redirect)
+                    
+                    _LOGGER.debug("%d - %s", req_auth.status, redirect)
+                    try:
+                        auth_code = urllib.parse.parse_qs(
+                            urllib.parse.urlparse(redirect).query
+                        )["code"][0]
+                    except KeyError:
+                        _LOGGER.error(
+                            "An error has occurred while attempting to authenticate. \
+                                Please ensure your credentials are correct"
+                        )
+                        return {}
+                
+                # Get OAuth 2.0 token object
+                async with session.request(
+                    method="POST",
+                    url=f"{OAUTH2_URL}/token",
+                    data={
+                        "grant_type": "authorization_code",
+                        "client_id": CLIENT_ID,
+                        "redirect_uri": REDIRECT,
+                        "code": auth_code,
+                        "code_verifier": code_verifier,
+                    },
+                ) as tokens_resp:
+                     return await tokens_resp.json()
 
     async def _get_tokens(self) -> bool:
         """
