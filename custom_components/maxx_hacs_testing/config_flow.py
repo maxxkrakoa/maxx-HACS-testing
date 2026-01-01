@@ -10,6 +10,8 @@ from homeassistant.const import CONF_PASSWORD, CONF_USERNAME
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResult
 
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
+
 from .api import MaxxHacsTestingApiClient
 from .const import DOMAIN
 
@@ -26,9 +28,11 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         if user_input is not None:
             # Validate credentials
+            session = async_get_clientsession(self.hass)
             client = MaxxHacsTestingApiClient(
                 username=user_input[CONF_USERNAME],
                 password=user_input[CONF_PASSWORD],
+                session=session,
             )
             
             valid = await client.async_authenticate()
@@ -60,9 +64,11 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         entry = self.hass.config_entries.async_get_entry(self.context["entry_id"])
 
         if user_input is not None:
+            session = async_get_clientsession(self.hass)
             client = MaxxHacsTestingApiClient(
                 username=user_input[CONF_USERNAME],
                 password=user_input[CONF_PASSWORD],
+                session=session,
             )
             
             valid = await client.async_authenticate()

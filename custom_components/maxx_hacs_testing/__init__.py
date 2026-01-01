@@ -11,13 +11,17 @@ from .coordinator import MaxxHacsTestingDataUpdateCoordinator
 
 PLATFORMS: list[Platform] = [Platform.SENSOR]
 
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
+
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Maxx HACS Testing from a config entry."""
     hass.data.setdefault(DOMAIN, {})
 
+    session = async_get_clientsession(hass)
     client = MaxxHacsTestingApiClient(
         username=entry.data[CONF_USERNAME],
         password=entry.data[CONF_PASSWORD],
+        session=session,
     )
     coordinator = MaxxHacsTestingDataUpdateCoordinator(hass, client)
     
