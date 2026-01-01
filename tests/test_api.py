@@ -8,6 +8,10 @@ import os
 # Internal mocks
 mock_brunata_client_instance = MagicMock()
 mock_brunata_client_instance._get_tokens = AsyncMock(return_value=True)
+mock_brunata_client_instance.fetch_meters = AsyncMock()
+mock_brunata_client_instance.fetch_consumption = AsyncMock()
+mock_brunata_client_instance.get_consumption = AsyncMock() # Will set return value in test
+
 mock_session_instance = MagicMock()
 
 @pytest.fixture(name="mock_modules", autouse=True)
@@ -22,6 +26,9 @@ def mock_modules_fixture():
 
     mock_brunata_api_module = SimpleNamespace()
     mock_brunata_api_module.BrunataOnlineApiClient = MagicMock(return_value=mock_brunata_client_instance)
+    # Mock enums
+    mock_brunata_api_module.Consumption = SimpleNamespace(WATER="Water", ELECTRICITY="Electricity", HEATING="Heating", OTHER="Other")
+    mock_brunata_api_module.Interval = SimpleNamespace(DAY="Day")
 
     # Patch sys.modules
     with patch.dict(sys.modules, {
@@ -41,20 +48,63 @@ def mock_modules_fixture():
 
 @pytest.mark.anyio
 async def test_async_get_data(mock_modules):
-    """Test async_get_data."""
+    """Test async_get_data with sample JSON."""
     api_class = mock_modules
     api = api_class("user", "pass", mock_session_instance)
     
-    with patch("asyncio.sleep", return_value=None):
-        data = await api.async_get_data()
-        
-        # Verify data structure
-        assert "electricity_usage" in data
-        assert "water_usage" in data
-        
-        # Verify data types
-        assert isinstance(data["electricity_usage"], float)
-        assert isinstance(data["water_usage"], (int, float))
+    # Sample JSON from user request
+    sample_json = {
+        "Heating": {},
+        "Water": {
+            "Meters": {
+                "Day": {
+                    "12709726": {
+                        "Name": "Teknikrum",
+                        "Values": {
+                            "2026-01-01": 0.0,
+                            "2026-01-02": 1.0
+                        }
+                    }
+                },
+                "Month": {}
+            },
+            "Units": ["K"]
+        },
+        "Electricity": {},
+        "Other": {
+            "Meters": {
+                "Day": {
+                    "12709720": {
+                        "Name": "Teknikrum",
+                        "Values": {
+                            "2026-01-01": 0,
+                            "2026-01-02": 7
+                        }
+                    }
+                },
+                "Month": {}
+            },
+            "Units": ["M"]
+        }
+    }
+    
+    mock_brunata_client_instance.get_consumption.return_value = sample_json
+    
+    data = await api.async_get_data()
+    
+    # Verify calls
+    assert mock_brunata_client_instance.fetch_meters.await_count == 1
+    assert mock_brunata_client_instance.fetch_consumption.await_count == 4
+    
+    # Verify data extraction
+    assert "electricity_usage" in data
+    assert "water_usage" in data
+    
+    # Map Other -> electricity_usage (latest value is 7)
+    assert data["electricity_usage"] == 7
+    
+    # Map Water -> water_usage (latest value is 1.0)
+    assert data["water_usage"] == 1.0
 
 @pytest.mark.anyio
 async def test_async_authenticate(mock_modules):
