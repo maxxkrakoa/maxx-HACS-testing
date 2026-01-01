@@ -100,7 +100,7 @@ def mock_modules_fixture():
         "homeassistant.components.sensor": mock_sensor_module,
         "custom_components.maxx_hacs_testing.const": mock_local_const_module,
         "aiohttp": mock_aiohttp_module,
-        "brunata_api": mock_brunata_api_module,
+        "custom_components.maxx_hacs_testing.brunata.api": mock_brunata_api_module,
         "libs.brunata.api": mock_brunata_api_module,
     }):
         # Ensure fresh import

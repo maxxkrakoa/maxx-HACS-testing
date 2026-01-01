@@ -3,7 +3,7 @@ import logging
 import asyncio
 import random
 import aiohttp
-import brunata_api
+from .brunata import api as brunata_api
 
 _LOGGER = logging.getLogger(__name__)
 

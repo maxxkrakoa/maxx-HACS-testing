@@ -34,7 +34,7 @@ def mock_modules_fixture():
     with patch.dict(sys.modules, {
         "aiohttp": mock_aiohttp_module,
         "homeassistant.helpers.aiohttp_client": mock_helpers_module.aiohttp_client,
-        "brunata_api": mock_brunata_api_module,
+        "custom_components.maxx_hacs_testing.brunata.api": mock_brunata_api_module,
         "libs.brunata.api": mock_brunata_api_module,
     }):
         # Ensure fresh import of api

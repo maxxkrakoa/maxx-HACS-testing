@@ -92,7 +92,7 @@ def mock_modules_fixture():
         "voluptuous": mock_voluptuous_module,
         "custom_components.maxx_hacs_testing.const": mock_local_const_module,
         "aiohttp": mock_aiohttp_module,
-        "brunata_api": mock_brunata_api_module,
+        "custom_components.maxx_hacs_testing.brunata.api": mock_brunata_api_module,
         "libs.brunata.api": mock_brunata_api_module,
     }):
         # Ensure fresh import of modules under test
@@ -105,7 +105,7 @@ def mock_modules_fixture():
         import custom_components.maxx_hacs_testing.config_flow as config_flow
         from custom_components.maxx_hacs_testing.const import DOMAIN, CONF_USERNAME, CONF_PASSWORD
         
-        yield config_flow, DOMAIN, CONF_USERNAME, CONF_PASSWORD
+        yield config_flow, DOMAIN, CONF_USERNAME, CONF_PASSWORD, mock_brunata_api_module
 
 @pytest.fixture(name="hass")
 def mock_hass_fixture():
@@ -114,8 +114,9 @@ def mock_hass_fixture():
     return m
 
 @pytest.mark.anyio
+@pytest.mark.anyio
 async def test_form(hass, mock_modules):
-    config_flow, DOMAIN, CONF_USERNAME, CONF_PASSWORD = mock_modules
+    config_flow, DOMAIN, CONF_USERNAME, CONF_PASSWORD, _ = mock_modules
     flow = config_flow.ConfigFlow()
     flow.hass = hass
     result = await flow.async_step_user()
@@ -123,7 +124,7 @@ async def test_form(hass, mock_modules):
 
 @pytest.mark.anyio
 async def test_form_valid_auth(hass, mock_modules):
-    config_flow, DOMAIN, CONF_USERNAME, CONF_PASSWORD = mock_modules
+    config_flow, DOMAIN, CONF_USERNAME, CONF_PASSWORD, mock_brunata_api_module = mock_modules
     flow = config_flow.ConfigFlow()
     flow.hass = hass
     
@@ -135,13 +136,12 @@ async def test_form_valid_auth(hass, mock_modules):
     assert result["data"] == {CONF_USERNAME: "u", CONF_PASSWORD: "p"}
     
     # Verify interaction
-    import brunata_api
-    brunata_api.BrunataOnlineApiClient.assert_called_with("u", "p", mock_session_instance)
+    mock_brunata_api_module.BrunataOnlineApiClient.assert_called_with("u", "p", mock_session_instance)
     mock_brunata_client_instance._get_tokens.assert_called() # loose check
 
 @pytest.mark.anyio
 async def test_form_invalid_auth(hass, mock_modules):
-    config_flow, DOMAIN, CONF_USERNAME, CONF_PASSWORD = mock_modules
+    config_flow, DOMAIN, CONF_USERNAME, CONF_PASSWORD, _ = mock_modules
     flow = config_flow.ConfigFlow()
     flow.hass = hass
     
@@ -153,7 +153,7 @@ async def test_form_invalid_auth(hass, mock_modules):
 
 @pytest.mark.anyio
 async def test_reconfigure(hass, mock_modules):
-    config_flow, DOMAIN, CONF_USERNAME, CONF_PASSWORD = mock_modules
+    config_flow, DOMAIN, CONF_USERNAME, CONF_PASSWORD, _ = mock_modules
     flow = config_flow.ConfigFlow()
     flow.hass = hass
     flow.context = {"entry_id": "123"}
