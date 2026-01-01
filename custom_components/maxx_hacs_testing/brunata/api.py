@@ -162,6 +162,16 @@ class BrunataOnlineApiClient:
                     return {}
                 
                 # Post credentials to B2C Endpoint
+                headers_post = {
+                    "Referer": str(req_code.url),
+                    "X-Csrf-Token": csrf_token,
+                    "X-Requested-With": "XMLHttpRequest",
+                }
+                _LOGGER.debug("Transaction ID: %s", transaction_id)
+                _LOGGER.debug("CSRF Token: %s", csrf_token)
+                _LOGGER.debug("POST Headers: %s", headers_post)
+                _LOGGER.debug("POST Referer: %s", headers_post["Referer"])
+                
                 async with session.request(
                     method="POST",
                     url=f"{AUTHN_URL}/SelfAsserted",
@@ -174,11 +184,7 @@ class BrunataOnlineApiClient:
                         "logonIdentifier": self._username,
                         "password": self._password,
                     },
-                    headers={
-                        "Referer": str(req_code.url),
-                        "X-Csrf-Token": csrf_token,
-                        "X-Requested-With": "XMLHttpRequest",
-                    },
+                    headers=headers_post,
                     allow_redirects=False,
                 ) as req_auth_post:
                     await req_auth_post.read() # Consume
