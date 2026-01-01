@@ -182,6 +182,9 @@ class BrunataOnlineApiClient:
                     allow_redirects=False,
                 ) as req_auth_post:
                     await req_auth_post.read() # Consume
+                    if req_auth_post.status != 200:
+                        _LOGGER.error("Auth POST failed with status %s. Body: %s", req_auth_post.status, await req_auth_post.text())
+                        return {}
                 
                 # Get authentication code
                 async with session.request(

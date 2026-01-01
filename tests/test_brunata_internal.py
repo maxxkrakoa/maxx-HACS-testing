@@ -62,7 +62,7 @@ async def test_auth_flow_is_async():
     mock_response.cookies = MagicMock()
     mock_response.cookies.get.return_value = SimpleNamespace(value="csrf")
     mock_response.headers = {"Location": "http://localhost/auth-response?code=123"}
-    mock_response.status = 200
+    mock_response.status = 200 # Default for all mocked responses
     
     # Mock aiohttp.ClientSession context manager to return our mock session
     params_mock_session = mock_session
