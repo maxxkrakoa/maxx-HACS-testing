@@ -164,8 +164,10 @@ class BrunataOnlineApiClient:
                 # Post credentials to B2C Endpoint
                 headers_post = {
                     "Referer": str(req_code.url),
+                    "Origin": f"{req_code.url.scheme}://{req_code.url.host}",
                     "X-Csrf-Token": csrf_token,
                     "X-Requested-With": "XMLHttpRequest",
+                    "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
                 }
                 _LOGGER.debug("Transaction ID: %s", transaction_id)
                 _LOGGER.debug("CSRF Token: %s", csrf_token)
