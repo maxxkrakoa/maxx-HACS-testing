@@ -3,7 +3,7 @@ import pytest
 from unittest.mock import MagicMock
 import sys
 import os
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, patch, AsyncMock
 from types import SimpleNamespace
 
 # Mock generic HA modules
@@ -43,3 +43,34 @@ def test_init_does_not_modify_session_headers():
 def test_api_wrapper_merges_headers():
     """Test that api_wrapper merges headers correctly."""
     pass # covered by logic check
+
+@pytest.mark.anyio
+async def test_auth_flow_is_async():
+    """Test that the auth flow calls are async and use aiohttp."""
+    mock_session = MagicMock()
+    mock_session.request = MagicMock()
+    # Mock context manager for request
+    mock_response = AsyncMock()
+    mock_response.__aenter__.return_value = mock_response
+    mock_response.__aexit__.return_value = None
+    mock_response.text = AsyncMock(return_value='var SETTINGS = {"dummy":"val","transId":"1234567890"};')
+    mock_response.json = AsyncMock(return_value={"access_token": "fake"})
+    mock_response.read = AsyncMock()
+    mock_session.request.return_value = mock_response
+    
+    # Mock cookie Access
+    mock_response.cookies = MagicMock()
+    mock_response.cookies.get.return_value = SimpleNamespace(value="csrf")
+    mock_response.headers = {"Location": "http://localhost/auth-response?code=123"}
+    mock_response.status = 200
+    
+    client = BrunataOnlineApiClient("u", "p", mock_session)
+    
+    # Run auth
+    tokens = await client._b2c_auth()
+    
+    # Check it returned tokens
+    assert tokens == {"access_token": "fake"}
+    
+    # Check it used session.request (async)
+    assert mock_session.request.called

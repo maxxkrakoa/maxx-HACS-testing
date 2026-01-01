@@ -13,7 +13,7 @@ import asyncio
 from socket import gaierror
 from aiohttp import ClientResponse, ClientSession, ClientError
 from async_timeout import timeout as async_timeout
-from requests import Session
+from async_timeout import timeout as async_timeout
 
 from .const import (
     API_URL,
@@ -108,7 +108,7 @@ class BrunataOnlineApiClient:
             return {}
         return await tokens.json()
 
-    def _b2c_auth(self) -> dict:
+    async def _b2c_auth(self) -> dict:
         # Initialize challenge values
         code_verifier = base64.urlsafe_b64encode(os.urandom(40)).decode("utf-8")
         code_verifier = re.sub("[^a-zA-Z0-9]+", "", code_verifier)
@@ -116,27 +116,40 @@ class BrunataOnlineApiClient:
         code_challenge = (
             base64.urlsafe_b64encode(code_challenge).decode("utf-8").replace("=", "")
         )
-        with Session() as session:
-            # Initial authorization call
-            req_code = session.request(
-                method="GET",
-                url=f"{API_URL.replace('webservice', 'auth-webservice')}/authorize",
-                params={
-                    "client_id": CLIENT_ID,
-                    "redirect_uri": REDIRECT,
-                    "scope": f"{CLIENT_ID} offline_access",
-                    "response_type": "code",
-                    "code_challenge": code_challenge,
-                    "code_challenge_method": "S256",
-                },
-            )
+        
+        # Initial authorization call
+        async with self._session.request(
+            method="GET",
+            url=f"{API_URL.replace('webservice', 'auth-webservice')}/authorize",
+            params={
+                "client_id": CLIENT_ID,
+                "redirect_uri": REDIRECT,
+                "scope": f"{CLIENT_ID} offline_access",
+                "response_type": "code",
+                "code_challenge": code_challenge,
+                "code_challenge_method": "S256",
+            },
+        ) as req_code:
+            text_code = await req_code.text()
             # Get CSRF Token & Transaction ID
+            # aiohttp cookie jar usually handles cookies automatically if attached to session
+            # We try to extract from cookie jar or response cookies
             try:
-                csrf_token = str(req_code.cookies.get("x-ms-cpim-csrf"))
-            except KeyError as exception:
-                _LOGGER.error("Error while retrieving CSRF Token: %s", exception)
-                return {}
-            match = re.search(r"var SETTINGS = (\{[^;]*\});", req_code.text)
+                # Assuming cookies are handled by cookie jar of session, but we need the value for X-Csrf-Token header
+                # Try getting from response headers Set-Cookie or session cookie jar
+                # self._session.cookie_jar.filter_cookies(req_code.url)
+                # But simple access via req_code.cookies might work if it returns a MultiDictProxy
+                csrf_token = str(req_code.cookies.get("x-ms-cpim-csrf").value)
+            except (KeyError, AttributeError):
+                # Fallback check session cookie jar
+                cookies = self._session.cookie_jar.filter_cookies(req_code.url)
+                if "x-ms-cpim-csrf" in cookies:
+                    csrf_token = cookies["x-ms-cpim-csrf"].value
+                else:
+                    _LOGGER.error("Error while retrieving CSRF Token")
+                    return {}
+
+            match = re.search(r"var SETTINGS = (\{[^;]*\});", text_code)
             if match:  # Use a little magic to avoid proper JSON parsing ✨
                 transaction_id = [
                     i for i in match.group(1).split('","') if i.startswith("transId")
@@ -145,8 +158,11 @@ class BrunataOnlineApiClient:
             else:
                 _LOGGER.error("Failed to get Transaction ID")
                 return {}
+            
             # Post credentials to B2C Endpoint
-            req_auth = session.request(
+            # Note: We don't need 'with Session' as we use self._session
+            
+            async with self._session.request(
                 method="POST",
                 url=f"{AUTHN_URL}/SelfAsserted",
                 params={
@@ -164,9 +180,11 @@ class BrunataOnlineApiClient:
                     "X-Requested-With": "XMLHttpRequest",
                 },
                 allow_redirects=False,
-            )
+            ) as req_auth_post:
+                await req_auth_post.read() # Consume
+            
             # Get authentication code
-            req_auth = session.request(
+            async with self._session.request(
                 method="GET",
                 url=f"{AUTHN_URL}/api/CombinedSigninAndSignup/confirmed",
                 params={
@@ -176,22 +194,31 @@ class BrunataOnlineApiClient:
                     "p": OAUTH2_PROFILE,
                 },
                 allow_redirects=False,
-            )
-            redirect = req_auth.headers["Location"]
-            assert redirect.startswith(REDIRECT)
-            _LOGGER.debug("%d - %s", req_auth.status_code, redirect)
-            try:
-                auth_code = urllib.parse.parse_qs(
-                    urllib.parse.urlparse(redirect).query
-                )["code"][0]
-            except KeyError:
-                _LOGGER.error(
-                    "An error has occurred while attempting to authenticate. \
-                        Please ensure your credentials are correct"
-                )
-                return {}
+            ) as req_auth:
+                await req_auth.read()
+                if "Location" not in req_auth.headers:
+                     _LOGGER.error("No Location header in auth confirmation response")
+                     return {}
+                     
+                redirect = req_auth.headers["Location"]
+                if not redirect.startswith(REDIRECT):
+                     # Sometimes wait/retry? But asserting directly
+                     _LOGGER.error("Redirect URL mismatch: %s", redirect)
+                
+                _LOGGER.debug("%d - %s", req_auth.status, redirect)
+                try:
+                    auth_code = urllib.parse.parse_qs(
+                        urllib.parse.urlparse(redirect).query
+                    )["code"][0]
+                except KeyError:
+                    _LOGGER.error(
+                        "An error has occurred while attempting to authenticate. \
+                            Please ensure your credentials are correct"
+                    )
+                    return {}
+            
             # Get OAuth 2.0 token object
-            tokens = session.request(
+            async with self._session.request(
                 method="POST",
                 url=f"{OAUTH2_URL}/token",
                 data={
@@ -201,8 +228,8 @@ class BrunataOnlineApiClient:
                     "code": auth_code,
                     "code_verifier": code_verifier,
                 },
-            )
-        return tokens.json()
+            ) as tokens_resp:
+                 return await tokens_resp.json()
 
     async def _get_tokens(self) -> bool:
         """
@@ -213,7 +240,7 @@ class BrunataOnlineApiClient:
         if self._is_token_valid("refresh_token"):
             tokens = await self._renew_tokens()
         else:
-            tokens = self._b2c_auth()
+            tokens = await self._b2c_auth()
         # Ensure validity of tokens
         if tokens.get("access_token"):
             # Add access token to session headers
