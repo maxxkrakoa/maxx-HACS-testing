@@ -16,7 +16,8 @@ class MaxxHacsTestingApiClient:
         """Sample API Client."""
         self._username = username
         self._password = password
-        self._session = session
+        #self._session = session
+        self._session = aiohttp.ClientSession()
 
         # initialize Brunata API client
         self._brunata_client = brunata_api.BrunataOnlineApiClient(self._username, self._password, self._session)
