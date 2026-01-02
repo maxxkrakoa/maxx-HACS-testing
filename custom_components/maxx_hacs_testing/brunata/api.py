@@ -174,8 +174,13 @@ class BrunataOnlineApiClient:
                 _LOGGER.debug("POST Headers: %s", headers_post)
                 _LOGGER.debug("POST Referer: %s", headers_post["Referer"])
                 
+                # Force cookies from initial request to be sent
+                cookies = session.cookie_jar.filter_cookies(req_code.url)
+                _LOGGER.debug("Forced Cookies: %s", cookies)
+
                 async with session.request(
                     method="POST",
+                    cookies=cookies,
                     url=f"{AUTHN_URL}/SelfAsserted",
                     params={
                         "tx": transaction_id,
