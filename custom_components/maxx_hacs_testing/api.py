@@ -24,8 +24,10 @@ class MaxxHacsTestingApiClient:
 
     async def _async_validate_credentials(self) -> bool:
         """Validate credentials."""
+        _LOGGER.debug("Validating credentials for user: %s", self._username)
         # check if tokens are valid - ie. username/password is valid
         tokens_valid = await self._brunata_client._get_tokens()
+        _LOGGER.debug("Credential validation result: %s", tokens_valid)
 
         return tokens_valid
 

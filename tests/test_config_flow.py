@@ -13,6 +13,7 @@ class MockConst:
     class Platform:
         SENSOR = "sensor"
     DOMAIN = "maxx_hacs_testing"
+    LOGGER = MagicMock()
 
 class MockConfigFlowParent:
     def __init__(self):
