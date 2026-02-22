@@ -41,11 +41,16 @@ def test_api_wrapper_merges_headers():
     pass # covered by logic check
 
 @pytest.mark.anyio
-async def test_auth_flow_is_async():
+@patch("aiohttp.ClientSession")
+async def test_auth_flow_is_async(mock_client_session_class):
     """Test that the auth flow calls are async and use aiohttp."""
-    mock_session = MagicMock()
+    mock_session = MagicMock() # The generic session
     
-    # We need to mock the async context manager returned by session.request(...)
+    # Mock the ClientSession context manager
+    mock_auth_session = AsyncMock()
+    mock_client_session_class.return_value.__aenter__.return_value = mock_auth_session
+    
+    # We need to mock the async context manager returned by auth_session.request(...)
     mock_request_ctx = AsyncMock()
     mock_response = AsyncMock()
     
@@ -69,7 +74,7 @@ async def test_auth_flow_is_async():
     mock_response.headers = MagicMock()
     mock_response.headers.get.return_value = "https://online.brunata.com/auth-response?code=123"
     
-    mock_session.request.return_value = mock_request_ctx
+    mock_auth_session.request.return_value = mock_request_ctx
     
     client = BrunataOnlineApiClient("u", "p", mock_session)
     
@@ -79,5 +84,5 @@ async def test_auth_flow_is_async():
     # Check it returned tokens
     assert tokens == {"access_token": "fake"}
     
-    # Check it used session.request
-    assert mock_session.request.called
+    # Check it used auth_session.request
+    assert mock_auth_session.request.called
