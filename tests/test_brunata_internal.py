@@ -41,13 +41,13 @@ def test_api_wrapper_merges_headers():
     pass # covered by logic check
 
 @pytest.mark.anyio
-@patch("aiohttp.ClientSession")
-async def test_auth_flow_is_async(mock_client_session_class):
+async def test_auth_flow_is_async():
     """Test that the auth flow calls are async and use aiohttp."""
     mock_session = MagicMock() # The generic session
     
+    mock_client_session_class = MagicMock()
     # Mock the ClientSession context manager
-    mock_auth_session = AsyncMock()
+    mock_auth_session = MagicMock()
     mock_client_session_class.return_value.__aenter__.return_value = mock_auth_session
     
     # We need to mock the async context manager returned by auth_session.request(...)
@@ -76,13 +76,17 @@ async def test_auth_flow_is_async(mock_client_session_class):
     
     mock_auth_session.request.return_value = mock_request_ctx
     
-    client = BrunataOnlineApiClient("u", "p", mock_session)
+    mock_aiohttp = MagicMock()
+    mock_aiohttp.ClientSession = mock_client_session_class
     
-    # Run auth
-    tokens = await client._b2c_auth()
-    
-    # Check it returned tokens
-    assert tokens == {"access_token": "fake"}
-    
-    # Check it used auth_session.request
-    assert mock_auth_session.request.called
+    with patch.dict(BrunataOnlineApiClient._b2c_auth.__globals__, {"aiohttp": mock_aiohttp}):
+        client = BrunataOnlineApiClient("u", "p", mock_session)
+        
+        # Run auth
+        tokens = await client._b2c_auth()
+        
+        # Check it returned tokens
+        assert tokens == {"access_token": "fake"}
+        
+        # Check it used auth_session.request
+        assert mock_auth_session.request.called
