@@ -44,48 +44,40 @@ def test_api_wrapper_merges_headers():
 async def test_auth_flow_is_async():
     """Test that the auth flow calls are async and use aiohttp."""
     mock_session = MagicMock()
-    mock_session.request = MagicMock()
-    # Mock context manager for request
-    mock_response = MagicMock()
-    mock_response.__enter__.return_value = mock_response
-    mock_response.__exit__.return_value = None
-    mock_response.text = 'var SETTINGS = {"dummy":"val","transId":"1234567890"};'
-    mock_response.json = MagicMock(return_value={"access_token": "fake"})
+    
+    # We need to mock the async context manager returned by session.request(...)
+    mock_request_ctx = AsyncMock()
+    mock_response = AsyncMock()
+    
+    # Set up the response object returned by __aenter__
+    mock_request_ctx.__aenter__.return_value = mock_response
+    mock_request_ctx.__aexit__.return_value = None
+    
+    # Mock response properties
+    mock_response.status = 200
+    mock_response.text.return_value = 'var SETTINGS = {"dummy":"val","transId":"1234567890"};'
+    mock_response.json.return_value = {"access_token": "fake"}
     mock_response.url = "http://localhost/initial"
-    mock_session.request.return_value = mock_response
     
-    # Mock cookie Access
+    # Mock cookies
+    mock_csrf = MagicMock()
+    mock_csrf.value = "csrf"
     mock_response.cookies = MagicMock()
-    mock_response.cookies.get.return_value = "csrf"
-    mock_response.headers = {"Location": "https://online.brunata.com/auth-response?code=123"}
-    mock_response.status_code = 200 # Default for all mocked responses
+    mock_response.cookies.get.return_value = mock_csrf
     
-    # Mock aiohttp.ClientSession context manager to return our mock session
-    params_mock_session = mock_session
+    # Mock headers
+    mock_response.headers = MagicMock()
+    mock_response.headers.get.return_value = "https://online.brunata.com/auth-response?code=123"
     
-    # We need to patch ClientSession at usage point. 
-    # Since we import BrunataOnlineApiClient, and it imports ClientSession...
-    # But wait, ClientSession is used inside the method.
+    mock_session.request.return_value = mock_request_ctx
     
-    mock_client_session_cls = MagicMock()
-    mock_session_ctx = MagicMock()
-    mock_session_ctx.__enter__.return_value = params_mock_session
-    mock_session_ctx.__exit__.return_value = None
-    mock_client_session_cls.return_value = mock_session_ctx
+    client = BrunataOnlineApiClient("u", "p", mock_session)
     
-    with patch.dict(BrunataOnlineApiClient._b2c_auth.__globals__, {"Session": mock_client_session_cls}):
-        
-        # Also need to mock cookie_jar on the session because we access it
-        params_mock_session.cookie_jar = MagicMock()
-        params_mock_session.cookie_jar.filter_cookies.return_value = {"x-ms-cpim-csrf": SimpleNamespace(value="csrf")}
-        
-        client = BrunataOnlineApiClient("u", "p", params_mock_session)
-        
-        # Run auth
-        tokens = client._b2c_auth()
-        
-        # Check it returned tokens
-        assert tokens == {"access_token": "fake"}
-        
-        # Check it used session.request (async)
-        assert params_mock_session.request.called
+    # Run auth
+    tokens = await client._b2c_auth()
+    
+    # Check it returned tokens
+    assert tokens == {"access_token": "fake"}
+    
+    # Check it used session.request
+    assert mock_session.request.called
