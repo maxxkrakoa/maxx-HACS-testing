@@ -13,7 +13,7 @@ import asyncio
 from socket import gaierror
 from aiohttp import ClientResponse, ClientError
 import aiohttp
-from async_timeout import timeout as async_timeout
+
 
 from .const import (
     API_URL,
@@ -377,7 +377,7 @@ class BrunataOnlineApiClient:
 
     async def api_wrapper(self, **args) -> ClientResponse:
         """Get information from the API."""
-        async with async_timeout(TIMEOUT):
+        async with asyncio.timeout(TIMEOUT):
             try:
                 async with self._session.request(**args) as response:
                     await response.read()
