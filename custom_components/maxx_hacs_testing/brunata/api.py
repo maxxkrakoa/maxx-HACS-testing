@@ -60,7 +60,7 @@ def end_of_interval(interval: Interval, offset: timedelta | None) -> str:
 class BrunataOnlineApiClient:
     """Brunata Online API Client"""
 
-    def __init__(self, username: str, password: str, session: ClientSession) -> None:
+    def __init__(self, username: str, password: str, session: aiohttp.ClientSession) -> None:
         self._username = username
         self._password = password
         self._session = session
