@@ -350,23 +350,30 @@ class BrunataOnlineApiClient:
             if req:
                 consumption.append(await req.json())
         # Add all metrics that are not None
-        usage["Meters"][interval.name.capitalize()].update(
-            {
-                meter.get("meter").get("meterId")
-                or index: {
-                    "Name": meter.get("meter").get("placement") or index,
-                    "Values": {
-                        entry.get("fromDate")[
-                            : 10 if interval is Interval.DAY else 7
-                        ]: entry.get("consumption")
-                        for entry in meter["consumptionValues"]
-                        if entry.get("consumption") is not None
-                    },
-                }
-                for lines in consumption
-                for index, meter in enumerate(lines["consumptionLines"])
+        mapped_data = {
+            meter.get("meter").get("meterId")
+            or index: {
+                "Name": meter.get("meter").get("placement") or index,
+                "Values": {
+                    entry.get("fromDate")[
+                        : 10 if interval is Interval.DAY else 7
+                    ]: entry.get("consumption")
+                    for entry in meter["consumptionValues"]
+                    if entry.get("consumption") is not None
+                },
             }
+            for lines in consumption
+            for index, meter in enumerate(lines["consumptionLines"])
+        }
+        
+        _LOGGER.debug(
+            "Parsed %s %s meter values: %s",
+            interval.name.capitalize(),
+            _type.name.capitalize(),
+            mapped_data
         )
+
+        usage["Meters"][interval.name.capitalize()].update(mapped_data)
 
     def get_consumption(self) -> dict:
         """Return consumption data."""

@@ -38,10 +38,13 @@ class MaxxHacsTestingApiClient:
         
         for meter_id, meter_info in meters.items():
             values = meter_info.get("Values", {})
+            _LOGGER.debug("Inspecting %s meter %s values: %s", category_name, meter_id, values)
             if values:
                 # keys are dates, sort them to find max
                 latest_date = max(values.keys())
+                _LOGGER.debug("Found latest date %s for %s with value: %s", latest_date, category_name, values[latest_date])
                 return float(values[latest_date])
+        _LOGGER.debug("No values found for category: %s", category_name)
         return None
 
     async def async_authenticate(self) -> bool:
@@ -65,4 +68,10 @@ class MaxxHacsTestingApiClient:
         data = {}
         data["water_usage"] = self._get_latest_value(json_data, "Water")
         data["electricity_usage"] = self._get_latest_value(json_data, "Other")
+        
+        _LOGGER.debug(
+            "Extracted Sensor Values -> Water: %s, Electricity (Other): %s", 
+            data["water_usage"], 
+            data["electricity_usage"]
+        )
         return data
