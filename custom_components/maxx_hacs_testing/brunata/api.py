@@ -34,26 +34,28 @@ TIMEOUT = 10
 
 
 def start_of_interval(interval: Interval, offset: timedelta | None) -> str:
-    """Returns start of year if interval is "M", otherwise start of month"""
+    """Returns start of year if interval is 'M', otherwise 30 days ago"""
     date = datetime.now()
     if offset is not None:
         date += offset
     if interval is Interval.MONTH:
-        date = date.replace(month=1)
-    date = date.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        date = date.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
+    else:
+        # Fetch a rolling 30 day window to safely cross month boundaries
+        date = date - timedelta(days=30)
+        date = date.replace(hour=0, minute=0, second=0, microsecond=0)
     return f"{date.isoformat()}.000Z"
 
 
 def end_of_interval(interval: Interval, offset: timedelta | None) -> str:
-    """Returns end of year if interval is "M", otherwise end of month"""
+    """Returns end of year if interval is 'M', otherwise current day"""
     date = datetime.now()
     if offset is not None:
         date += offset
     if interval is Interval.MONTH:
-        date = date.replace(month=12)
-    date = date.replace(day=28) + timedelta(days=4)
-    date -= timedelta(days=date.day)
-    date = date.replace(hour=23, minute=59, second=59, microsecond=0)
+        date = date.replace(month=12, day=31, hour=23, minute=59, second=59, microsecond=0)
+    else:
+        date = date.replace(hour=23, minute=59, second=59, microsecond=0)
     return f"{date.isoformat()}.999Z"
 
 
