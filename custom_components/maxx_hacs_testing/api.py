@@ -39,11 +39,21 @@ class MaxxHacsTestingApiClient:
         for meter_id, meter_info in meters.items():
             values = meter_info.get("Values", {})
             _LOGGER.debug("Inspecting %s meter %s values: %s", category_name, meter_id, values)
+            
             if values:
-                # keys are dates, sort them to find max
-                latest_date = max(values.keys())
-                _LOGGER.debug("Found latest date %s for %s with value: %s", latest_date, category_name, values[latest_date])
-                return float(values[latest_date])
+                # keys are dates, sort them
+                sorted_dates = sorted(values.keys())
+                # pick the day before the current one (second to last) if available
+                target_date = sorted_dates[-2] if len(sorted_dates) > 1 else sorted_dates[-1]
+                
+                _LOGGER.debug(
+                    "Found target date %s for %s with value: %s", 
+                    target_date, 
+                    category_name, 
+                    values[target_date]
+                )
+                return float(values[target_date])
+            
         _LOGGER.debug("No values found for category: %s", category_name)
         return None
 
