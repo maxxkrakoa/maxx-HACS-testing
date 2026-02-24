@@ -382,7 +382,11 @@ class BrunataOnlineApiClient:
         async with asyncio.timeout(TIMEOUT):
             try:
                 async with self._session.request(**args) as response:
-                    await response.read()
+                    body = await response.read()
+                    if response.status >= 400:
+                        _LOGGER.error("API error %s from %s: %s", response.status, args["url"], body.decode("utf-8", errors="replace"))
+                    else:
+                        _LOGGER.debug("API Response from %s: %s", args["url"], body.decode("utf-8", errors="replace")[:1000])
                     response.raise_for_status()
                     return response
             except asyncio.TimeoutError as exception:
