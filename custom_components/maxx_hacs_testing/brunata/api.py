@@ -75,13 +75,13 @@ class BrunataOnlineApiClient:
         if not self._tokens:
             return False
         match token:
-            case "access_token":
+            case "access_token" | "access":
                 ts = self._tokens.get("expires_on")
-                if datetime.fromtimestamp(ts) < datetime.now():
+                if not ts or datetime.fromtimestamp(ts) < datetime.now() + timedelta(minutes=5):
                     return False
-            case "refresh":
+            case "refresh_token" | "refresh":
                 ts = self._tokens.get("refresh_token_expires_on")
-                if datetime.fromtimestamp(ts) < datetime.now():
+                if not ts or datetime.fromtimestamp(ts) < datetime.now() + timedelta(minutes=5):
                     return False
         return True
 
@@ -100,11 +100,13 @@ class BrunataOnlineApiClient:
                 data={
                     "grant_type": "refresh_token",
                     "refresh_token": self._tokens.get("refresh_token"),
-                    "CLIENT_ID": CLIENT_ID,
+                    "client_id": CLIENT_ID,
                 },
             )
         except Exception as error:  # pylint: disable=broad-except
             _LOGGER.error("An error occurred while trying to renew tokens: %s", error)
+            return {}
+        if not tokens:
             return {}
         return await tokens.json()
 
@@ -260,15 +262,16 @@ class BrunataOnlineApiClient:
         """Get all meters associated with the account."""
         if not await self._get_tokens():
             return
-        meters = await (
-            await self.api_wrapper(
-                method="GET",
-                url=f"{API_URL}/consumer/superallocationunits",
-                headers={
-                    "Referer": CONSUMPTION_URL,
-                },
-            )
-        ).json()
+        meters_req = await self.api_wrapper(
+            method="GET",
+            url=f"{API_URL}/consumer/superallocationunits",
+            headers={
+                "Referer": CONSUMPTION_URL,
+            },
+        )
+        if not meters_req:
+            return
+        meters = await meters_req.json()
         water_units = []
         heating_units = []
         power_units = []
@@ -325,28 +328,27 @@ class BrunataOnlineApiClient:
         if not usage:
             _LOGGER.debug("No %s meter was found", _type.name.lower())
             return
-        consumption = [
-            await (
-                await self.api_wrapper(
-                    method="GET",
-                    url=f"{API_URL}/consumer/consumption",
-                    params={
-                        "startdate": start_of_interval(
-                            interval, offset=timedelta(seconds=0)
-                        ),
-                        "enddate": end_of_interval(
-                            interval, offset=timedelta(seconds=0)
-                        ),
-                        "interval": interval.value,
-                        "allocationunit": unit,
-                    },
-                    headers={
-                        "Referer": f"{CONSUMPTION_URL}/{_type.name.lower()}",
-                    },
-                )
-            ).json()
-            for unit in usage["Units"]
-        ]
+        consumption = []
+        for unit in usage["Units"]:
+            req = await self.api_wrapper(
+                method="GET",
+                url=f"{API_URL}/consumer/consumption",
+                params={
+                    "startdate": start_of_interval(
+                        interval, offset=timedelta(seconds=0)
+                    ),
+                    "enddate": end_of_interval(
+                        interval, offset=timedelta(seconds=0)
+                    ),
+                    "interval": interval.value,
+                    "allocationunit": unit,
+                },
+                headers={
+                    "Referer": f"{CONSUMPTION_URL}/{_type.name.lower()}",
+                },
+            )
+            if req:
+                consumption.append(await req.json())
         # Add all metrics that are not None
         usage["Meters"][interval.name.capitalize()].update(
             {
