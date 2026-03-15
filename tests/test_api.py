@@ -1,4 +1,4 @@
-"""Tests for MaxxHacsTestingApiClient."""
+"""Tests for BrunataOnlineApiClient."""
 import sys
 import pytest
 from unittest.mock import MagicMock, AsyncMock, patch
@@ -34,17 +34,17 @@ def mock_modules_fixture():
     with patch.dict(sys.modules, {
         "aiohttp": mock_aiohttp_module,
         "homeassistant.helpers.aiohttp_client": mock_helpers_module.aiohttp_client,
-        "custom_components.maxx_hacs_testing.brunata.api": mock_brunata_api_module,
+        "custom_components.brunata_online.brunata.api": mock_brunata_api_module,
         "libs.brunata.api": mock_brunata_api_module,
     }):
         # Ensure fresh import of api
-        if "custom_components.maxx_hacs_testing.api" in sys.modules:
-            del sys.modules["custom_components.maxx_hacs_testing.api"]
+        if "custom_components.brunata_online.api" in sys.modules:
+            del sys.modules["custom_components.brunata_online.api"]
             
         sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        from custom_components.maxx_hacs_testing.api import MaxxHacsTestingApiClient
+        from custom_components.brunata_online.api import BrunataOnlineApiClient
         
-        yield MaxxHacsTestingApiClient
+        yield BrunataOnlineApiClient
 
 @pytest.mark.anyio
 async def test_async_get_data(mock_modules):
@@ -61,8 +61,8 @@ async def test_async_get_data(mock_modules):
                     "12709726": {
                         "Name": "Teknikrum",
                         "Values": {
-                            "2026-01-01": 0.0,
-                            "2026-01-02": 1.0
+                            "2026-01-01": 1.0,
+                            "2026-01-02": 2.0
                         }
                     }
                 },
@@ -77,8 +77,8 @@ async def test_async_get_data(mock_modules):
                     "12709720": {
                         "Name": "Teknikrum",
                         "Values": {
-                            "2026-01-01": 0,
-                            "2026-01-02": 7
+                            "2026-01-01": 7,
+                            "2026-01-02": 8
                         }
                     }
                 },

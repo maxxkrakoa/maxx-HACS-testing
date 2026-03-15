@@ -1,4 +1,4 @@
-"""DataUpdateCoordinator for Maxx HACS Testing."""
+"""DataUpdateCoordinator for Home Assistant Brunata Online."""
 from datetime import timedelta
 import logging
 
@@ -8,18 +8,18 @@ from homeassistant.helpers.update_coordinator import (
     UpdateFailed,
 )
 
-from .api import MaxxHacsTestingApiClient
+from .api import BrunataOnlineApiClient
 from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
-class MaxxHacsTestingDataUpdateCoordinator(DataUpdateCoordinator):
+class BrunataOnlineDataUpdateCoordinator(DataUpdateCoordinator):
     """Class to manage fetching data from the API."""
 
     def __init__(
         self,
         hass: HomeAssistant,
-        client: MaxxHacsTestingApiClient,
+        client: BrunataOnlineApiClient,
     ) -> None:
         """Initialize."""
         self.client = client

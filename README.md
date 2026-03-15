@@ -1,11 +1,11 @@
-# Maxx HACS Testing
+# Home Assistant Brunata Online
 
-Example Home Assistant integration for testing HACS distribution.
+This is a Home Assistant integration that connects to the Brunata API to fetch your household's utility consumption data.
 
 ## Features
-- Electricity usage sensor
-- Water usage sensor
-- Designed for easy extension to REST API
+- Electricity usage sensor (fetches daily values)
+- Water usage sensor (fetches daily values)
+- Integrates securely with your Brunata online account
 
 ## Installation
 1. Install via HACS (Custom Repository)
@@ -15,7 +15,7 @@ Example Home Assistant integration for testing HACS distribution.
 ## Manual Update Trigger
 If you need to force an immediate fetch of new data outside of the regular 30-minute interval, you can use the built-in Home Assistant action.
 1. Go to **Developer Tools** > **Actions**
-2. Search for the `Maxx HACS Testing: Update data` action (`maxx_hacs_testing.update_data`)
+2. Search for the `Home Assistant Brunata Online: Update data` action (`brunata_online.update_data`)
 3. Click **Perform action**
 
 ## Debugging
@@ -24,5 +24,5 @@ To see the raw output of the API server calls and any errors encountered during 
 logger:
   default: info
   logs:
-    custom_components.maxx_hacs_testing: debug
+    custom_components.brunata_online: debug
 ```

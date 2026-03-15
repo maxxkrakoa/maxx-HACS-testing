@@ -19,7 +19,7 @@ with patch.dict(sys.modules, {
     "homeassistant.helpers.aiohttp_client": mock_hass.helpers.aiohttp_client,
 }):
     sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    from custom_components.maxx_hacs_testing.brunata.api import BrunataOnlineApiClient
+    from custom_components.brunata_online.brunata.api import BrunataOnlineApiClient
 
 def test_init_does_not_modify_session_headers():
     """Test that __init__ does not modify the session headers."""

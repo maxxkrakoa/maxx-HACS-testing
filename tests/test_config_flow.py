@@ -12,7 +12,7 @@ class MockConst:
     CONF_PASSWORD = "password"
     class Platform:
         SENSOR = "sensor"
-    DOMAIN = "maxx_hacs_testing"
+    DOMAIN = "brunata_online"
     LOGGER = MagicMock()
 
 class MockConfigFlowParent:
@@ -91,20 +91,20 @@ def mock_modules_fixture():
         "homeassistant.const": mock_ha_const_module,
         "homeassistant.helpers.aiohttp_client": mock_helpers_module.aiohttp_client,
         "voluptuous": mock_voluptuous_module,
-        "custom_components.maxx_hacs_testing.const": mock_local_const_module,
+        "custom_components.brunata_online.const": mock_local_const_module,
         "aiohttp": mock_aiohttp_module,
-        "custom_components.maxx_hacs_testing.brunata.api": mock_brunata_api_module,
+        "custom_components.brunata_online.brunata.api": mock_brunata_api_module,
         "libs.brunata.api": mock_brunata_api_module,
     }):
         # Ensure fresh import of modules under test
-        if "custom_components.maxx_hacs_testing.config_flow" in sys.modules:
-            del sys.modules["custom_components.maxx_hacs_testing.config_flow"]
-        if "custom_components.maxx_hacs_testing.api" in sys.modules:
-            del sys.modules["custom_components.maxx_hacs_testing.api"]
+        if "custom_components.brunata_online.config_flow" in sys.modules:
+            del sys.modules["custom_components.brunata_online.config_flow"]
+        if "custom_components.brunata_online.api" in sys.modules:
+            del sys.modules["custom_components.brunata_online.api"]
             
         sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        import custom_components.maxx_hacs_testing.config_flow as config_flow
-        from custom_components.maxx_hacs_testing.const import DOMAIN, CONF_USERNAME, CONF_PASSWORD
+        import custom_components.brunata_online.config_flow as config_flow
+        from custom_components.brunata_online.const import DOMAIN, CONF_USERNAME, CONF_PASSWORD
         
         yield config_flow, DOMAIN, CONF_USERNAME, CONF_PASSWORD, mock_brunata_api_module
 

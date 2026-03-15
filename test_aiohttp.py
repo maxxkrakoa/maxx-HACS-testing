@@ -1,6 +1,6 @@
 import asyncio
 import aiohttp
-from custom_components.maxx_hacs_testing.brunata.const import CLIENT_ID, REDIRECT, AUTHN_URL, OAUTH2_PROFILE, API_URL
+from custom_components.brunata_online.brunata.const import CLIENT_ID, REDIRECT, AUTHN_URL, OAUTH2_PROFILE, API_URL
 import base64
 import os
 import hashlib

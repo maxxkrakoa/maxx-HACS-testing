@@ -1,29 +1,29 @@
-"""The Maxx HACS Testing integration."""
+"""The Home Assistant Brunata Online integration."""
 from __future__ import annotations
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 
-from .api import MaxxHacsTestingApiClient
+from .api import BrunataOnlineApiClient
 from .const import DOMAIN, CONF_USERNAME, CONF_PASSWORD
-from .coordinator import MaxxHacsTestingDataUpdateCoordinator
+from .coordinator import BrunataOnlineDataUpdateCoordinator
 
 PLATFORMS: list[Platform] = [Platform.SENSOR]
 
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    """Set up Maxx HACS Testing from a config entry."""
+    """Set up Home Assistant Brunata Online from a config entry."""
     hass.data.setdefault(DOMAIN, {})
 
     session = async_get_clientsession(hass)
-    client = MaxxHacsTestingApiClient(
+    client = BrunataOnlineApiClient(
         username=entry.data[CONF_USERNAME],
         password=entry.data[CONF_PASSWORD],
         session=session,
     )
-    coordinator = MaxxHacsTestingDataUpdateCoordinator(hass, client)
+    coordinator = BrunataOnlineDataUpdateCoordinator(hass, client)
     
     await coordinator.async_config_entry_first_refresh()
 

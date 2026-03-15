@@ -1,4 +1,4 @@
-"""Config flow for Maxx HACS Testing integration."""
+"""Config flow for Home Assistant Brunata Online integration."""
 from __future__ import annotations
 
 from typing import Any
@@ -12,13 +12,13 @@ from homeassistant.data_entry_flow import FlowResult
 
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
-from .api import MaxxHacsTestingApiClient
+from .api import BrunataOnlineApiClient
 from .const import DOMAIN, LOGGER
 
 _LOGGER = LOGGER
 
 class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
-    """Handle a config flow for Maxx HACS Testing."""
+    """Handle a config flow for Home Assistant Brunata Online."""
 
     VERSION = 1
 
@@ -31,7 +31,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             # Validate credentials
             session = async_get_clientsession(self.hass)
-            client = MaxxHacsTestingApiClient(
+            client = BrunataOnlineApiClient(
                 username=user_input[CONF_USERNAME],
                 password=user_input[CONF_PASSWORD],
                 session=session,
@@ -69,7 +69,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         if user_input is not None:
             session = async_get_clientsession(self.hass)
-            client = MaxxHacsTestingApiClient(
+            client = BrunataOnlineApiClient(
                 username=user_input[CONF_USERNAME],
                 password=user_input[CONF_PASSWORD],
                 session=session,

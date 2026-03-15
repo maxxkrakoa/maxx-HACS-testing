@@ -1,4 +1,4 @@
-"""Global fixtures for Maxx HACS Testing integration."""
+"""Global fixtures for Home Assistant Brunata Online integration."""
 import sys
 from unittest.mock import MagicMock
 import pytest

@@ -8,7 +8,7 @@ import datetime
 
 # Define simple mocks
 class MockConst:
-    DOMAIN = "maxx_hacs_testing"
+    DOMAIN = "brunata_online"
     CONF_USERNAME = "username"
     CONF_PASSWORD = "password"
     UnitOfEnergy = SimpleNamespace(KILO_WATT_HOUR="kWh")
@@ -98,17 +98,17 @@ def mock_modules_fixture():
         "homeassistant.helpers.update_coordinator": mock_update_coordinator_module,
         "homeassistant.helpers.aiohttp_client": mock_helpers_module.aiohttp_client,
         "homeassistant.components.sensor": mock_sensor_module,
-        "custom_components.maxx_hacs_testing.const": mock_local_const_module,
+        "custom_components.brunata_online.const": mock_local_const_module,
         "aiohttp": mock_aiohttp_module,
-        "custom_components.maxx_hacs_testing.brunata.api": mock_brunata_api_module,
+        "custom_components.brunata_online.brunata.api": mock_brunata_api_module,
         "libs.brunata.api": mock_brunata_api_module,
     }):
         # Ensure fresh import
-        if "custom_components.maxx_hacs_testing.sensor" in sys.modules:
-            del sys.modules["custom_components.maxx_hacs_testing.sensor"]
+        if "custom_components.brunata_online.sensor" in sys.modules:
+            del sys.modules["custom_components.brunata_online.sensor"]
             
         sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        import custom_components.maxx_hacs_testing.sensor as sensor_module
+        import custom_components.brunata_online.sensor as sensor_module
         
         yield sensor_module
 
@@ -122,7 +122,7 @@ def mock_coordinator():
 @pytest.mark.anyio
 async def test_sensor_params(mock_modules, coordinator):
     sensor_module = mock_modules
-    sensor = sensor_module.MaxxHacsTestingSensor(
+    sensor = sensor_module.BrunataOnlineSensor(
         coordinator, "electricity_usage", "Electricity", "energy", "kWh"
     )
     assert sensor.native_value == 10.0

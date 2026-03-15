@@ -26,7 +26,7 @@ with mock.patch.dict(sys.modules, {
 }):
     sys.path.append(os.path.abspath("."))
     try:
-        import custom_components.maxx_hacs_testing.config_flow
+        import custom_components.brunata_online.config_flow
         print("Import successful!")
     except Exception as e:
         import traceback

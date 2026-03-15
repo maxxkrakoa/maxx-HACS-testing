@@ -1,8 +1,8 @@
-"""Constants for the Maxx HACS Testing integration."""
+"""Constants for the Home Assistant Brunata Online integration."""
 
 import logging
 
-DOMAIN = "maxx_hacs_testing"
+DOMAIN = "brunata_online"
 CONF_USERNAME = "username"
 CONF_PASSWORD = "password"
 

@@ -7,7 +7,7 @@ from .brunata import api as brunata_api
 
 _LOGGER = logging.getLogger(__name__)
 
-class MaxxHacsTestingApiClient:
+class BrunataOnlineApiClient:
     """Sample API Client."""
 
     def __init__(
